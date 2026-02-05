@@ -3,6 +3,8 @@ from flask import Flask, jsonify, request
 from flask_pymongo import PyMongo
 import re
 from datetime import datetime
+from dotenv import load_dotenv
+import os
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
@@ -10,7 +12,11 @@ app = Flask(__name__)
 # --- Configuration de la connexion à MongoDB ---
 # Assurez-vous que votre serveur MongoDB est en cours d'exécution sur le port par défaut (27017).
 # Remplacez "db_timesheets" par le nom de votre base de données.
-app.config["MONGO_URI"] = "mongodb://localhost:27017/db_timesheets"
+
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGO_URI")
+app.config["MONGO_URI"] = MONGO_URI
 
 # Pour une connexion à MongoDB Atlas, le format de l'URI serait :
 # app.config["MONGO_URI"] = "mongodb+srv://<username>:<password>@<cluster-url>/db_timesheets?retryWrites=true&w=majority"
@@ -182,6 +188,19 @@ def get_timesheet(timesheet_id):
         return jsonify(ts), 200
     except Exception:
         return jsonify({'error': 'Feuille de temps non trouvée ou ID invalide'}), 404
+
+@app.route('/test-connection', methods=['GET'])
+def test_connection():
+    """Teste la connexion à la base de données MongoDB."""
+    try:
+        # Utiliser mongo.cx.admin pour un test de connexion plus fiable.
+        # 'mongo.db' peut être None si la base de données n'est pas dans l'URI.
+        # La base 'admin' existe toujours sur un serveur MongoDB.
+        mongo.cx.admin.command('ping')
+        return jsonify({'status': 'success', 'message': 'Connexion à MongoDB réussie!'}), 200
+    except Exception as e:
+        # Affichez l'erreur pour le débogage, mais soyez prudent en production.
+        return jsonify({'status': 'error', 'message': f'Échec de la connexion à MongoDB: {e}'}), 500
 
 # Point d'entrée pour exécuter l'application
 if __name__ == '__main__':
